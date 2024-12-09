@@ -61,6 +61,8 @@ std::string Workspace::GetFileName(const int image_idx) const {
 void Workspace::Load(const std::vector<std::string>& image_names) {
   const size_t num_images = model_.images.size();
   bitmaps_.resize(num_images);
+  semantic_maps_.resize(num_images);
+  instance_maps_.resize(num_images);
   depth_maps_.resize(num_images);
   normal_maps_.resize(num_images);
 
@@ -70,9 +72,28 @@ void Workspace::Load(const std::vector<std::string>& image_names) {
 
     // Read and rescale bitmap
     bitmaps_[image_idx] = std::make_unique<Bitmap>();
-    bitmaps_[image_idx]->Read(GetBitmapPath(image_idx), options_.image_as_rgb);
+    bitmaps_[image_idx]->Read(GetBitmapPath(image_idx), options_.image_as_rgb, 0);
     if (options_.max_image_size > 0) {
       bitmaps_[image_idx]->Rescale((int)width, (int)height);
+    }
+
+    // Read and rescale semantic_map
+    if(options_.as_semantic)
+    {
+      semantic_maps_[image_idx] = std::make_unique<Bitmap>();
+      semantic_maps_[image_idx]->Read(GetBitmapPath(image_idx), options_.image_as_rgb, options_.as_semantic);
+      if (options_.max_image_size > 0) {
+        semantic_maps_[image_idx]->Rescale((int)width, (int)height);
+      }
+    }
+
+    if(options_.as_instance)
+    {
+      instance_maps_[image_idx] = std::make_unique<Bitmap>();
+      instance_maps_[image_idx]->Read(GetBitmapPath(image_idx), options_.image_as_rgb, options_.as_instance);
+      if (options_.max_image_size > 0) {
+        instance_maps_[image_idx]->Rescale((int)width, (int)height);
+      }
     }
 
     // Read and rescale depth map
@@ -113,6 +134,14 @@ void Workspace::Load(const std::vector<std::string>& image_names) {
 
 const Bitmap& Workspace::GetBitmap(const int image_idx) {
   return *bitmaps_[image_idx];
+}
+
+const Bitmap& Workspace::GetSemanticmap(const int image_idx) {
+  return *semantic_maps_[image_idx];
+}
+
+const Bitmap& Workspace::GetInstancemap(const int image_idx) {
+  return *instance_maps_[image_idx];
 }
 
 const DepthMap& Workspace::GetDepthMap(const int image_idx) {

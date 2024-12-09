@@ -141,6 +141,10 @@ int RunStereoFuser(int argc, char** argv) {
   std::string output_type = "PLY";
   std::string output_path;
   std::string bbox_path;
+  std::string semantic_path = "";
+  bool enable_semantic = false;
+  std::string instance_path = "";
+  bool enable_instance = false;
 
   OptionManager options;
   options.AddRequiredOption("workspace_path", &workspace_path);
@@ -152,8 +156,27 @@ int RunStereoFuser(int argc, char** argv) {
   options.AddDefaultOption("output_type", &output_type, "{BIN, TXT, PLY}");
   options.AddRequiredOption("output_path", &output_path);
   options.AddDefaultOption("bbox_path", &bbox_path);
+  options.AddDefaultOption("semantic_path", &semantic_path);
+  options.AddDefaultOption("enable_semantic", &enable_semantic);
+  options.AddDefaultOption("instance_path", &instance_path);
+  options.AddDefaultOption("enable_instance", &enable_instance);
   options.AddStereoFusionOptions();
   options.Parse(argc, argv);
+
+  if (enable_instance && !enable_semantic) {
+    LOG(ERROR) << "Invalid: enable_instance but enable_semantic is false";
+    return EXIT_FAILURE;
+  }
+
+  if (enable_semantic && semantic_path.empty()) {
+    LOG(ERROR) << "Invalid: enable_semantic but semantic_path is empty";
+    return EXIT_FAILURE;
+  }
+
+  if (enable_instance && instance_path.empty()) {
+    LOG(ERROR) << "Invalid: enable_instance but instance_path is empty";
+    return EXIT_FAILURE;
+  }
 
   StringToLower(&workspace_format);
   if (workspace_format != "colmap" && workspace_format != "pmvs") {
@@ -186,7 +209,9 @@ int RunStereoFuser(int argc, char** argv) {
                           workspace_path,
                           workspace_format,
                           pmvs_option_name,
-                          input_type);
+                          input_type,
+                          enable_semantic,
+                          enable_instance);
 
   fuser.Run();
 

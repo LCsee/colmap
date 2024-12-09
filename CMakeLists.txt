@@ -33,6 +33,8 @@ cmake_minimum_required(VERSION 3.10)
 ################################################################################
 # Options
 ################################################################################
+set(CMAKE_CUDA_ARCHITECTURES 89)
+set(CMAKE_CUDA_COMPILER "/mnt/luchuanchuan/anaconda3/envs/sam2/bin/nvcc") 
 
 option(SIMD_ENABLED "Whether to enable SIMD optimizations" ON)
 option(OPENMP_ENABLED "Whether to enable OpenMP parallelization" ON)
@@ -80,6 +82,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 14)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
 
 set_property(GLOBAL PROPERTY GLOBAL_DEPENDS_NO_CYCLES ON)
 

@@ -56,6 +56,10 @@ class Workspace {
     // Whether to read image as RGB or gray scale.
     bool image_as_rgb = true;
 
+    // Whether to read image as semantic or instance
+    bool as_semantic = false;
+    bool as_instance = false;
+
     // Location and type of workspace.
     std::string workspace_path;
     std::string workspace_format;
@@ -74,6 +78,8 @@ class Workspace {
   inline const Model& GetModel() const { return model_; }
 
   virtual const Bitmap& GetBitmap(int image_idx);
+  virtual const Bitmap& GetSemanticmap(int image_idx);
+  virtual const Bitmap& GetInstancemap(int image_idx);
   virtual const DepthMap& GetDepthMap(int image_idx);
   virtual const NormalMap& GetNormalMap(int image_idx);
 
@@ -97,6 +103,8 @@ class Workspace {
   std::string depth_map_path_;
   std::string normal_map_path_;
   std::vector<std::unique_ptr<Bitmap>> bitmaps_;
+  std::vector<std::unique_ptr<Bitmap>> semantic_maps_;
+  std::vector<std::unique_ptr<Bitmap>> instance_maps_;
   std::vector<std::unique_ptr<DepthMap>> depth_maps_;
   std::vector<std::unique_ptr<NormalMap>> normal_maps_;
 };

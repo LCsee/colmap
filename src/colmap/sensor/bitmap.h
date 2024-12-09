@@ -125,6 +125,8 @@ class Bitmap {
   // Manipulate individual pixels. For grayscale images, only the red element
   // of the RGB color is used.
   bool GetPixel(int x, int y, BitmapColor<uint8_t>* color) const;
+  bool GetPixel(int x, int y, uint16_t* color) const;
+  bool GetPixel(int x, int y, uint32_t* color) const;
   bool SetPixel(int x, int y, const BitmapColor<uint8_t>& color);
 
   // Get pointer to y-th scanline, where the 0-th scanline is at the top.
@@ -138,6 +140,15 @@ class Bitmap {
   bool InterpolateNearestNeighbor(double x,
                                   double y,
                                   BitmapColor<uint8_t>* color) const;
+
+  bool InterpolateNearestNeighbor(double x,
+                                  double y,
+                                  uint16_t* semantic) const;
+
+  bool InterpolateNearestNeighbor(double x,
+                                  double y,
+                                  uint32_t* instance) const;
+
   bool InterpolateBilinear(double x, double y, BitmapColor<float>* color) const;
 
   // Extract EXIF information from bitmap. Returns false if no EXIF information
@@ -149,7 +160,9 @@ class Bitmap {
   bool ExifAltitude(double* altitude) const;
 
   // Read bitmap at given path and convert to grey- or colorscale.
-  bool Read(const std::string& path, bool as_rgb = true);
+  bool Read(const std::string& path,
+            bool as_rgb = true,
+            bool as_semantic_or_instance = false);
 
   // Write image to file. Flags can be used to set e.g. the JPEG quality.
   // Consult the FreeImage documentation for all available flags.

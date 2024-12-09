@@ -56,6 +56,19 @@ float Median(std::vector<T>* elems) {
   }
 }
 
+uint16_t GetHighestPriority(const std::vector<uint16_t>& vec) {
+  THROW_CHECK(!vec.empty());
+  int highestPriority = vec[0];
+  int highestPriorityValue = priority[highestPriority];
+  for (int num : vec) {
+    if (priority[num] < highestPriorityValue) {
+      highestPriority = num;
+      highestPriorityValue = priority[num];
+    }
+  }
+  return highestPriority;
+}
+
 // Use the sparse model to find most connected image that has not yet been
 // fused. This is used as a heuristic to ensure that the workspace cache reuses
 // already cached images as efficient as possible.
@@ -121,12 +134,16 @@ StereoFusion::StereoFusion(const StereoFusionOptions& options,
                            const std::string& workspace_path,
                            const std::string& workspace_format,
                            const std::string& pmvs_option_name,
-                           const std::string& input_type)
+                           const std::string& input_type,
+                           const bool enable_semantic,
+                           const bool enable_instance)
     : options_(options),
       workspace_path_(workspace_path),
       workspace_format_(workspace_format),
       pmvs_option_name_(pmvs_option_name),
       input_type_(input_type),
+      enable_semantic_(enable_semantic),
+      enable_instance_(enable_instance),
       max_squared_reproj_error_(options_.max_reproj_error *
                                 options_.max_reproj_error),
       min_cos_normal_error_(std::cos(DegToRad(options_.max_normal_error))) {
@@ -165,6 +182,8 @@ void StereoFusion::Run() {
   workspace_options.num_threads = options_.num_threads;
   workspace_options.max_image_size = options_.max_image_size;
   workspace_options.image_as_rgb = true;
+  workspace_options.as_semantic = enable_semantic_;
+  workspace_options.as_instance = enable_instance_;
   workspace_options.cache_size = options_.cache_size;
   workspace_options.workspace_path = workspace_path_;
   workspace_options.workspace_format = workspace_format_;
@@ -194,7 +213,8 @@ void StereoFusion::Run() {
   if (model.GetMaxOverlappingImagesFromPMVS().empty()) {
     overlapping_images_ = model.GetMaxOverlappingImages(
         options_.check_num_images, kMinTriangulationAngle);
-  } else {
+  } 
+  else {
     overlapping_images_ = model.GetMaxOverlappingImagesFromPMVS();
   }
 
@@ -395,6 +415,7 @@ void StereoFusion::Fuse(const int thread_id,
   std::vector<uint8_t> fused_point_r;
   std::vector<uint8_t> fused_point_g;
   std::vector<uint8_t> fused_point_b;
+  std::vector<uint16_t> fused_point_semantic;
   std::unordered_set<int> fused_point_visibility;
 
   while (!fusion_queue.empty()) {
@@ -468,6 +489,10 @@ void StereoFusion::Fuse(const int thread_id,
     workspace_->GetBitmap(image_idx).InterpolateNearestNeighbor(
         col / bitmap_scale.first, row / bitmap_scale.second, &color);
 
+    uint16_t semantic = -1;
+    workspace_->GetBitmap(image_idx).InterpolateNearestNeighbor(
+        col / bitmap_scale.first, row / bitmap_scale.second, &semantic);
+
     // Set the current pixel as visited.
     fused_pixel_mask.Set(row, col, 1);
 
@@ -491,6 +516,7 @@ void StereoFusion::Fuse(const int thread_id,
     fused_point_r.push_back(color.r);
     fused_point_g.push_back(color.g);
     fused_point_b.push_back(color.b);
+    fused_point_semantic.push_back(semantic);
     fused_point_visibility.insert(image_idx);
 
     // Remember the first pixel as the reference.
@@ -551,12 +577,21 @@ void StereoFusion::Fuse(const int thread_id,
     fused_point.ny = fused_normal.y() / fused_normal_norm;
     fused_point.nz = fused_normal.z() / fused_normal_norm;
 
-    fused_point.r = TruncateCast<float, uint8_t>(
-        std::round(internal::Median(&fused_point_r)));
-    fused_point.g = TruncateCast<float, uint8_t>(
-        std::round(internal::Median(&fused_point_g)));
-    fused_point.b = TruncateCast<float, uint8_t>(
-        std::round(internal::Median(&fused_point_b)));
+    auto label = colmap::mvs::internal::GetHighestPriority(fused_point_semantic);
+
+    if (enable_semantic_) {
+      auto color = label2color[label];
+      fused_point.r = std::get<0>(color);
+      fused_point.g = std::get<1>(color);
+      fused_point.b = std::get<2>(color);
+    } else {
+      fused_point.r = TruncateCast<float, uint8_t>(
+          std::round(internal::Median(&fused_point_r)));
+      fused_point.g = TruncateCast<float, uint8_t>(
+          std::round(internal::Median(&fused_point_g)));
+      fused_point.b = TruncateCast<float, uint8_t>(
+          std::round(internal::Median(&fused_point_b)));
+    }
 
     task_fused_points_[thread_id].push_back(fused_point);
     task_fused_points_visibility_[thread_id].emplace_back(

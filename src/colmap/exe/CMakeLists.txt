@@ -89,4 +89,27 @@ COLMAP_ADD_EXECUTABLE(
         ${OPTIONAL_LIBS}
         Boost::boost
 )
+
+COLMAP_ADD_EXECUTABLE(
+    NAME mvs_test
+    SRCS
+        mvs_test.cc
+        feature.cc
+        sfm.cc
+        database.cc
+        feature.cc
+        image.cc
+        model.cc
+        mvs.cc
+    LINK_LIBS
+        colmap_controllers
+        colmap_retrieval
+        colmap_scene
+        colmap_sfm
+        colmap_util
+        ${OPTIONAL_LIBS}
+        Boost::boost
+)
+
 set_target_properties(colmap_main PROPERTIES OUTPUT_NAME colmap)
+set_target_properties(mvs_test PROPERTIES OUTPUT_NAME mvs_test)

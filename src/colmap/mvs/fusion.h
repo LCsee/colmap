@@ -50,6 +50,35 @@
 namespace colmap {
 namespace mvs {
 
+inline std::unordered_map<uint16_t, uint16_t> priority = {{1, 0},
+                                                   {4, 1},
+                                                   {3, 2},
+                                                   {5, 3},
+                                                   {2, 4},
+                                                   {8, 5},
+                                                   {9, 6},
+                                                   {6, 7},
+                                                   {7, 8},
+                                                   {10, 9},
+                                                   {0, 10}};
+
+using label_color = std::tuple<uint8_t, uint8_t, uint8_t>;
+
+inline std::unordered_map<uint16_t, label_color> label2color = {
+    {0, {0, 0, 0}},        // black
+    {1, {128, 0, 0}},      // building      red
+    {2, {192, 192, 192}},  // road        grey
+    {3, {192, 0, 192}},    // car           light violet
+    {4, {0, 128, 0}},      // tree          green
+    {5, {128, 128, 0}},    // vegetation    dark green
+    {6, {255, 255, 0}},    // human         yellow
+    {7, {135, 206, 250}},  // sky           light blue
+    {8, {0, 0, 128}},      // water         blue
+    {9, {252, 230, 201}},  // ground      egg
+    {10, {128, 64, 128}}   // mountain     dark violet
+
+};  // namespace mvs
+
 struct StereoFusionOptions {
   // Path for PNG masks. Same format expected as ImageReaderOptions.
   std::string mask_path = "";
@@ -108,7 +137,9 @@ class StereoFusion : public BaseController {
                const std::string& workspace_path,
                const std::string& workspace_format,
                const std::string& pmvs_option_name,
-               const std::string& input_type);
+               const std::string& input_type,
+               const bool enable_semantic = false,
+               const bool enable_instance = false);
 
   const std::vector<PlyPoint>& GetFusedPoints() const;
   const std::vector<std::vector<int>>& GetFusedPointsVisibility() const;
@@ -124,6 +155,8 @@ class StereoFusion : public BaseController {
   const std::string workspace_format_;
   const std::string pmvs_option_name_;
   const std::string input_type_;
+  const bool enable_semantic_;
+  const bool enable_instance_;
   const float max_squared_reproj_error_;
   const float min_cos_normal_error_;
 
@@ -179,5 +212,8 @@ void WritePointsVisibility(
     const std::string& path,
     const std::vector<std::vector<int>>& points_visibility);
 
+namespace internal{
+  uint16_t GetHighestPriority(const std::vector<uint16_t>& vec);
+}
 }  // namespace mvs
 }  // namespace colmap

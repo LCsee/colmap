@@ -91,7 +91,11 @@ bool IsPtrRGB(FIBITMAP* ptr) {
   return FreeImage_GetColorType(ptr) == FIC_RGB && FreeImage_GetBPP(ptr) == 24;
 }
 
-bool IsPtrSupported(FIBITMAP* ptr) { return IsPtrGrey(ptr) || IsPtrRGB(ptr); }
+bool IsPtrSemanticOrInstance(FIBITMAP* ptr){
+  return FreeImage_GetColorType(ptr) == FIC_MINISBLACK && (FreeImage_GetBPP(ptr) == 32 || FreeImage_GetBPP(ptr) == 16);
+}
+
+bool IsPtrSupported(FIBITMAP* ptr) { return IsPtrGrey(ptr) || IsPtrRGB(ptr) || IsPtrSemanticOrInstance(ptr); }
 
 }  // namespace
 
@@ -257,6 +261,40 @@ bool Bitmap::GetPixel(const int x,
   return false;
 }
 
+bool Bitmap::GetPixel(const int x,
+                      const int y,
+                      uint16_t* semantic) const {
+  if (x < 0 || x >= width_ || y < 0 || y >= height_) {
+    return false;
+  }
+
+  const uint16_t* line = reinterpret_cast<const uint16_t*>(FreeImage_GetScanLine(handle_.ptr, height_ - 1 - y));
+
+  if (IsGrey()) {
+    *semantic = line[x];
+    return true;
+  } else{
+    return false;
+  }
+}
+
+bool Bitmap::GetPixel(const int x,
+                      const int y,
+                      uint32_t* semantic) const {
+  if (x < 0 || x >= width_ || y < 0 || y >= height_) {
+    return false;
+  }
+
+  const uint32_t* line = reinterpret_cast<const uint32_t*>(FreeImage_GetScanLine(handle_.ptr, height_ - 1 - y));
+
+  if (IsGrey()) {
+    *semantic = line[x];
+    return true;
+  } else{
+    return false;
+  }
+}
+
 bool Bitmap::SetPixel(const int x,
                       const int y,
                       const BitmapColor<uint8_t>& color) {
@@ -303,6 +341,22 @@ void Bitmap::Fill(const BitmapColor<uint8_t>& color) {
 bool Bitmap::InterpolateNearestNeighbor(const double x,
                                         const double y,
                                         BitmapColor<uint8_t>* color) const {
+  const int xx = static_cast<int>(std::round(x));
+  const int yy = static_cast<int>(std::round(y));
+  return GetPixel(xx, yy, color);
+}
+
+bool Bitmap::InterpolateNearestNeighbor(const double x,
+                                        const double y,
+                                        uint16_t* color) const {
+  const int xx = static_cast<int>(std::round(x));
+  const int yy = static_cast<int>(std::round(y));
+  return GetPixel(xx, yy, color);
+}
+
+bool Bitmap::InterpolateNearestNeighbor(const double x,
+                                        const double y,
+                                        uint32_t* color) const {
   const int xx = static_cast<int>(std::round(x));
   const int yy = static_cast<int>(std::round(y));
   return GetPixel(xx, yy, color);
@@ -559,7 +613,7 @@ bool Bitmap::ExifAltitude(double* altitude) const {
   return false;
 }
 
-bool Bitmap::Read(const std::string& path, const bool as_rgb) {
+bool Bitmap::Read(const std::string& path, const bool as_rgb, const bool as_semantic_or_instance) {
   if (!ExistsFile(path)) {
     return false;
   }
@@ -575,18 +629,22 @@ bool Bitmap::Read(const std::string& path, const bool as_rgb) {
     return false;
   }
 
-  if (!IsPtrRGB(handle_.ptr) && as_rgb) {
-    FIBITMAP* converted_bitmap = FreeImage_ConvertTo24Bits(handle_.ptr);
-    handle_ = FreeImageHandle(converted_bitmap);
-  } else if (!IsPtrGrey(handle_.ptr) && !as_rgb) {
-    if (FreeImage_GetBPP(handle_.ptr) != 24) {
-      FIBITMAP* converted_bitmap_24 = FreeImage_ConvertTo24Bits(handle_.ptr);
-      handle_ = FreeImageHandle(converted_bitmap_24);
+  if(!as_semantic_or_instance)
+  {
+    if (!IsPtrRGB(handle_.ptr) && as_rgb) {
+      FIBITMAP* converted_bitmap = FreeImage_ConvertTo24Bits(handle_.ptr);
+      handle_ = FreeImageHandle(converted_bitmap);
+    } else if (!IsPtrGrey(handle_.ptr) && !as_rgb) {
+      if (FreeImage_GetBPP(handle_.ptr) != 24) {
+        FIBITMAP* converted_bitmap_24 = FreeImage_ConvertTo24Bits(handle_.ptr);
+        handle_ = FreeImageHandle(converted_bitmap_24);
+      }
+      FIBITMAP* converted_bitmap = FreeImage_ConvertToGreyscale(handle_.ptr);
+      handle_ = FreeImageHandle(converted_bitmap);
     }
-    FIBITMAP* converted_bitmap = FreeImage_ConvertToGreyscale(handle_.ptr);
-    handle_ = FreeImageHandle(converted_bitmap);
   }
-
+  // std::cout << FreeImage_GetColorType(handle_.ptr) << std::endl;
+  // std::cout << FreeImage_GetBPP(handle_.ptr) << std::endl;
   if (!IsPtrSupported(handle_.ptr)) {
     handle_ = FreeImageHandle();
     return false;
