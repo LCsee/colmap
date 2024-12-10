@@ -61,6 +61,8 @@ class Workspace {
     bool as_instance = false;
 
     // Location and type of workspace.
+    std::string semantic_path;
+    std::string instance_path;
     std::string workspace_path;
     std::string workspace_format;
     std::string input_type;
@@ -85,6 +87,8 @@ class Workspace {
 
   // Get paths to bitmap, depth map, normal map and consistency graph.
   std::string GetBitmapPath(int image_idx) const;
+  std::string GetSemanticPath(int image_idx) const;
+  std::string GetInstancePath(int image_idx) const;
   std::string GetDepthMapPath(int image_idx) const;
   std::string GetNormalMapPath(int image_idx) const;
 

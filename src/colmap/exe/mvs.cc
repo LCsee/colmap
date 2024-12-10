@@ -210,6 +210,8 @@ int RunStereoFuser(int argc, char** argv) {
                           workspace_format,
                           pmvs_option_name,
                           input_type,
+                          semantic_path,
+                          instance_path,
                           enable_semantic,
                           enable_instance);
 

@@ -72,25 +72,29 @@ void Workspace::Load(const std::vector<std::string>& image_names) {
 
     // Read and rescale bitmap
     bitmaps_[image_idx] = std::make_unique<Bitmap>();
-    bitmaps_[image_idx]->Read(GetBitmapPath(image_idx), options_.image_as_rgb, 0);
+    bitmaps_[image_idx]->Read(
+        GetBitmapPath(image_idx), options_.image_as_rgb, 0);
     if (options_.max_image_size > 0) {
       bitmaps_[image_idx]->Rescale((int)width, (int)height);
     }
 
     // Read and rescale semantic_map
-    if(options_.as_semantic)
-    {
+    if (options_.as_semantic) {
       semantic_maps_[image_idx] = std::make_unique<Bitmap>();
-      semantic_maps_[image_idx]->Read(GetBitmapPath(image_idx), options_.image_as_rgb, options_.as_semantic);
+      semantic_maps_[image_idx]->Read(GetSemanticPath(image_idx),
+                                      options_.image_as_rgb,
+                                      options_.as_semantic);
       if (options_.max_image_size > 0) {
         semantic_maps_[image_idx]->Rescale((int)width, (int)height);
       }
     }
 
-    if(options_.as_instance)
-    {
+    // Read and rescale instance_map
+    if (options_.as_instance) {
       instance_maps_[image_idx] = std::make_unique<Bitmap>();
-      instance_maps_[image_idx]->Read(GetBitmapPath(image_idx), options_.image_as_rgb, options_.as_instance);
+      instance_maps_[image_idx]->Read(GetInstancePath(image_idx),
+                                      options_.image_as_rgb,
+                                      options_.as_instance);
       if (options_.max_image_size > 0) {
         instance_maps_[image_idx]->Rescale((int)width, (int)height);
       }
@@ -154,6 +158,14 @@ const NormalMap& Workspace::GetNormalMap(const int image_idx) {
 
 std::string Workspace::GetBitmapPath(const int image_idx) const {
   return model_.images.at(image_idx).GetPath();
+}
+
+std::string Workspace::GetSemanticPath(const int image_idx) const {
+  return options_.semantic_path + std::filesystem::path(model_.GetImageName(image_idx)).replace_extension(".png").string();
+}
+
+std::string Workspace::GetInstancePath(const int image_idx) const {
+  return options_.instance_path + std::filesystem::path(model_.GetImageName(image_idx)).replace_extension(".png").string();
 }
 
 std::string Workspace::GetDepthMapPath(const int image_idx) const {

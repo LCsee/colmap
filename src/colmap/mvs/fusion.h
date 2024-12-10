@@ -51,16 +51,16 @@ namespace colmap {
 namespace mvs {
 
 inline std::unordered_map<uint16_t, uint16_t> priority = {{1, 0},
-                                                   {4, 1},
-                                                   {3, 2},
-                                                   {5, 3},
-                                                   {2, 4},
-                                                   {8, 5},
-                                                   {9, 6},
-                                                   {6, 7},
-                                                   {7, 8},
-                                                   {10, 9},
-                                                   {0, 10}};
+                                                          {4, 1},
+                                                          {3, 2},
+                                                          {5, 3},
+                                                          {2, 4},
+                                                          {8, 5},
+                                                          {9, 6},
+                                                          {6, 7},
+                                                          {7, 8},
+                                                          {10, 9},
+                                                          {0, 10}};
 
 using label_color = std::tuple<uint8_t, uint8_t, uint8_t>;
 
@@ -138,6 +138,8 @@ class StereoFusion : public BaseController {
                const std::string& workspace_format,
                const std::string& pmvs_option_name,
                const std::string& input_type,
+               const std::string& semantic_path = "",
+               const std::string& instance_path = "",
                const bool enable_semantic = false,
                const bool enable_instance = false);
 
@@ -155,6 +157,8 @@ class StereoFusion : public BaseController {
   const std::string workspace_format_;
   const std::string pmvs_option_name_;
   const std::string input_type_;
+  const std::string semantic_path_;
+  const std::string instance_path_;
   const bool enable_semantic_;
   const bool enable_instance_;
   const float max_squared_reproj_error_;
@@ -212,8 +216,8 @@ void WritePointsVisibility(
     const std::string& path,
     const std::vector<std::vector<int>>& points_visibility);
 
-namespace internal{
-  uint16_t GetHighestPriority(const std::vector<uint16_t>& vec);
+namespace internal {
+uint16_t GetHighestPriority(const std::vector<uint16_t>& vec);
 }
 }  // namespace mvs
 }  // namespace colmap

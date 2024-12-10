@@ -135,6 +135,8 @@ StereoFusion::StereoFusion(const StereoFusionOptions& options,
                            const std::string& workspace_format,
                            const std::string& pmvs_option_name,
                            const std::string& input_type,
+                           const std::string& semantic_path,
+                           const std::string& instance_path,
                            const bool enable_semantic,
                            const bool enable_instance)
     : options_(options),
@@ -142,6 +144,8 @@ StereoFusion::StereoFusion(const StereoFusionOptions& options,
       workspace_format_(workspace_format),
       pmvs_option_name_(pmvs_option_name),
       input_type_(input_type),
+      semantic_path_(semantic_path),
+      instance_path_(instance_path),
       enable_semantic_(enable_semantic),
       enable_instance_(enable_instance),
       max_squared_reproj_error_(options_.max_reproj_error *
@@ -182,7 +186,9 @@ void StereoFusion::Run() {
   workspace_options.num_threads = options_.num_threads;
   workspace_options.max_image_size = options_.max_image_size;
   workspace_options.image_as_rgb = true;
+  workspace_options.semantic_path = semantic_path_;
   workspace_options.as_semantic = enable_semantic_;
+  workspace_options.instance_path = instance_path_;
   workspace_options.as_instance = enable_instance_;
   workspace_options.cache_size = options_.cache_size;
   workspace_options.workspace_path = workspace_path_;
