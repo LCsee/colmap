@@ -56,14 +56,14 @@ float Median(std::vector<T>* elems) {
   }
 }
 
-uint16_t GetHighestPriority(const std::vector<uint16_t>& vec) {
+uint8_t GetHighestPriority(const std::vector<uint8_t>& vec) {
   THROW_CHECK(!vec.empty());
   int highestPriority = vec[0];
   int highestPriorityValue = priority[highestPriority];
   for (int num : vec) {
-    if (priority[num] < highestPriorityValue) {
+    if (priority.at(num) < highestPriorityValue) {
       highestPriority = num;
-      highestPriorityValue = priority[num];
+      highestPriorityValue = priority.at(num);
     }
   }
   return highestPriority;
@@ -219,8 +219,7 @@ void StereoFusion::Run() {
   if (model.GetMaxOverlappingImagesFromPMVS().empty()) {
     overlapping_images_ = model.GetMaxOverlappingImages(
         options_.check_num_images, kMinTriangulationAngle);
-  } 
-  else {
+  } else {
     overlapping_images_ = model.GetMaxOverlappingImagesFromPMVS();
   }
 
@@ -421,7 +420,7 @@ void StereoFusion::Fuse(const int thread_id,
   std::vector<uint8_t> fused_point_r;
   std::vector<uint8_t> fused_point_g;
   std::vector<uint8_t> fused_point_b;
-  std::vector<uint16_t> fused_point_semantic;
+  std::vector<uint8_t> fused_point_semantic;
   std::unordered_set<int> fused_point_visibility;
 
   while (!fusion_queue.empty()) {
@@ -495,8 +494,8 @@ void StereoFusion::Fuse(const int thread_id,
     workspace_->GetBitmap(image_idx).InterpolateNearestNeighbor(
         col / bitmap_scale.first, row / bitmap_scale.second, &color);
 
-    uint16_t semantic = -1;
-    workspace_->GetBitmap(image_idx).InterpolateNearestNeighbor(
+    uint8_t semantic = -1;
+    workspace_->GetSemanticmap(image_idx).InterpolateNearestNeighbor(
         col / bitmap_scale.first, row / bitmap_scale.second, &semantic);
 
     // Set the current pixel as visited.
@@ -583,10 +582,11 @@ void StereoFusion::Fuse(const int thread_id,
     fused_point.ny = fused_normal.y() / fused_normal_norm;
     fused_point.nz = fused_normal.z() / fused_normal_norm;
 
-    auto label = colmap::mvs::internal::GetHighestPriority(fused_point_semantic);
+    auto label =
+        colmap::mvs::internal::GetHighestPriority(fused_point_semantic);
 
     if (enable_semantic_) {
-      auto color = label2color[label];
+      const auto& color = label2color[label];
       fused_point.r = std::get<0>(color);
       fused_point.g = std::get<1>(color);
       fused_point.b = std::get<2>(color);

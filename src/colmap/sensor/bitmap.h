@@ -125,8 +125,8 @@ class Bitmap {
   // Manipulate individual pixels. For grayscale images, only the red element
   // of the RGB color is used.
   bool GetPixel(int x, int y, BitmapColor<uint8_t>* color) const;
-  bool GetPixel(int x, int y, uint16_t* color) const;
-  bool GetPixel(int x, int y, uint32_t* color) const;
+  bool GetSemantic(int x, int y, uint8_t* semantic) const;
+  bool GetInstance(int x, int y, uint32_t* instance) const;
   bool SetPixel(int x, int y, const BitmapColor<uint8_t>& color);
 
   // Get pointer to y-th scanline, where the 0-th scanline is at the top.
@@ -143,7 +143,7 @@ class Bitmap {
 
   bool InterpolateNearestNeighbor(double x,
                                   double y,
-                                  uint16_t* semantic) const;
+                                  uint8_t* semantic) const;
 
   bool InterpolateNearestNeighbor(double x,
                                   double y,

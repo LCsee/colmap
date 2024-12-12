@@ -50,7 +50,7 @@
 namespace colmap {
 namespace mvs {
 
-inline std::unordered_map<uint16_t, uint16_t> priority = {{1, 0},
+inline std::unordered_map<uint8_t, uint8_t> priority = {{1, 0},
                                                           {4, 1},
                                                           {3, 2},
                                                           {5, 3},
@@ -64,7 +64,7 @@ inline std::unordered_map<uint16_t, uint16_t> priority = {{1, 0},
 
 using label_color = std::tuple<uint8_t, uint8_t, uint8_t>;
 
-inline std::unordered_map<uint16_t, label_color> label2color = {
+inline std::unordered_map<uint8_t, label_color> label2color = {
     {0, {0, 0, 0}},        // black
     {1, {128, 0, 0}},      // building      red
     {2, {192, 192, 192}},  // road        grey
@@ -217,7 +217,7 @@ void WritePointsVisibility(
     const std::vector<std::vector<int>>& points_visibility);
 
 namespace internal {
-uint16_t GetHighestPriority(const std::vector<uint16_t>& vec);
+uint8_t GetHighestPriority(const std::vector<uint8_t>& vec);
 }
 }  // namespace mvs
 }  // namespace colmap

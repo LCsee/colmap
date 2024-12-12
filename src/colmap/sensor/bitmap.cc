@@ -91,11 +91,14 @@ bool IsPtrRGB(FIBITMAP* ptr) {
   return FreeImage_GetColorType(ptr) == FIC_RGB && FreeImage_GetBPP(ptr) == 24;
 }
 
-bool IsPtrSemanticOrInstance(FIBITMAP* ptr){
-  return FreeImage_GetColorType(ptr) == FIC_MINISBLACK && (FreeImage_GetBPP(ptr) == 32 || FreeImage_GetBPP(ptr) == 16);
+bool IsPtrSemanticOrInstance(FIBITMAP* ptr) {
+  return FreeImage_GetColorType(ptr) == FIC_MINISBLACK &&
+         (FreeImage_GetBPP(ptr) == 32 || FreeImage_GetBPP(ptr) == 8);
 }
 
-bool IsPtrSupported(FIBITMAP* ptr) { return IsPtrGrey(ptr) || IsPtrRGB(ptr) || IsPtrSemanticOrInstance(ptr); }
+bool IsPtrSupported(FIBITMAP* ptr) {
+  return IsPtrGrey(ptr) || IsPtrRGB(ptr) || IsPtrSemanticOrInstance(ptr);
+}
 
 }  // namespace
 
@@ -261,36 +264,34 @@ bool Bitmap::GetPixel(const int x,
   return false;
 }
 
-bool Bitmap::GetPixel(const int x,
-                      const int y,
-                      uint16_t* semantic) const {
+bool Bitmap::GetSemantic(const int x, const int y, uint8_t* semantic) const {
+  // std::cout << x << " " << y << " " << width_ << " " << height_ << " "
+  //           << "IsGrey():" << IsGrey() << std::endl;
   if (x < 0 || x >= width_ || y < 0 || y >= height_) {
     return false;
   }
-
-  const uint16_t* line = reinterpret_cast<const uint16_t*>(FreeImage_GetScanLine(handle_.ptr, height_ - 1 - y));
+  const uint8_t* line = FreeImage_GetScanLine(handle_.ptr, height_ - 1 - y);
 
   if (IsGrey()) {
     *semantic = line[x];
     return true;
-  } else{
+  } else {
     return false;
   }
 }
 
-bool Bitmap::GetPixel(const int x,
-                      const int y,
-                      uint32_t* semantic) const {
+bool Bitmap::GetInstance(const int x, const int y, uint32_t* instance) const {
   if (x < 0 || x >= width_ || y < 0 || y >= height_) {
     return false;
   }
 
-  const uint32_t* line = reinterpret_cast<const uint32_t*>(FreeImage_GetScanLine(handle_.ptr, height_ - 1 - y));
+  const uint32_t* line = reinterpret_cast<const uint32_t*>(
+      FreeImage_GetScanLine(handle_.ptr, height_ - 1 - y));
 
   if (IsGrey()) {
-    *semantic = line[x];
+    *instance = line[x];
     return true;
-  } else{
+  } else {
     return false;
   }
 }
@@ -348,18 +349,18 @@ bool Bitmap::InterpolateNearestNeighbor(const double x,
 
 bool Bitmap::InterpolateNearestNeighbor(const double x,
                                         const double y,
-                                        uint16_t* color) const {
+                                        uint8_t* semantic) const {
   const int xx = static_cast<int>(std::round(x));
   const int yy = static_cast<int>(std::round(y));
-  return GetPixel(xx, yy, color);
+  return GetSemantic(xx, yy, semantic);
 }
 
 bool Bitmap::InterpolateNearestNeighbor(const double x,
                                         const double y,
-                                        uint32_t* color) const {
+                                        uint32_t* instance) const {
   const int xx = static_cast<int>(std::round(x));
   const int yy = static_cast<int>(std::round(y));
-  return GetPixel(xx, yy, color);
+  return GetInstance(xx, yy, instance);
 }
 
 bool Bitmap::InterpolateBilinear(const double x,
@@ -613,7 +614,9 @@ bool Bitmap::ExifAltitude(double* altitude) const {
   return false;
 }
 
-bool Bitmap::Read(const std::string& path, const bool as_rgb, const bool as_semantic_or_instance) {
+bool Bitmap::Read(const std::string& path,
+                  const bool as_rgb,
+                  const bool as_semantic_or_instance) {
   if (!ExistsFile(path)) {
     return false;
   }
@@ -628,9 +631,7 @@ bool Bitmap::Read(const std::string& path, const bool as_rgb, const bool as_sema
   if (handle_.ptr == nullptr) {
     return false;
   }
-
-  if(!as_semantic_or_instance)
-  {
+  if (!as_semantic_or_instance) {
     if (!IsPtrRGB(handle_.ptr) && as_rgb) {
       FIBITMAP* converted_bitmap = FreeImage_ConvertTo24Bits(handle_.ptr);
       handle_ = FreeImageHandle(converted_bitmap);
