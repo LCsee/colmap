@@ -2,6 +2,3 @@
 	path = doc/_build/html
 	url = https://github.com/colmap/colmap.github.io.git
 	ignore = all
-[submodule "src/thirdparty/CSF"]
-	path = src/thirdparty/CSF
-	url = https://github.com/LCsee/CSF.git
