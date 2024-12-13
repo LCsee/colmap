@@ -51,16 +51,21 @@ namespace colmap {
 namespace mvs {
 
 inline std::unordered_map<uint8_t, uint8_t> priority = {{1, 0},
-                                                          {4, 1},
-                                                          {3, 2},
-                                                          {5, 3},
-                                                          {2, 4},
-                                                          {8, 5},
-                                                          {9, 6},
-                                                          {6, 7},
-                                                          {7, 8},
-                                                          {10, 9},
-                                                          {0, 10}};
+                                                        {4, 1},
+                                                        {3, 2},
+                                                        {5, 3},
+                                                        {2, 4},
+                                                        {8, 5},
+                                                        {9, 6},
+                                                        {6, 7},
+                                                        {7, 8},
+                                                        {10, 9},
+                                                        {0, 10}};
+
+inline std::unordered_map<uint8_t, uint8_t> pri_no_ground = {
+    {1, 0}, {4, 1}, {3, 2}, {5, 3}, {6, 4}, {7, 5}, {10, 6}, {0, 7}};
+inline std::unordered_map<uint8_t, uint8_t> pri_ground = {
+    {4, 0}, {5, 1}, {2, 2}, {8, 3}, {6, 4}, {9, 5}, {0, 6}};
 
 using label_color = std::tuple<uint8_t, uint8_t, uint8_t>;
 
@@ -144,6 +149,7 @@ class StereoFusion : public BaseController {
                const bool enable_instance = false);
 
   const std::vector<PlyPoint>& GetFusedPoints() const;
+  const std::vector<PlyInstance>& GetFusedPointsInstance() const;
   const std::vector<std::vector<int>>& GetFusedPointsVisibility() const;
 
   void Run();
@@ -194,9 +200,11 @@ class StereoFusion : public BaseController {
 
   // Already fused points.
   std::vector<PlyPoint> fused_points_;
+  std::vector<PlyInstance> fused_points_instance_;
   std::vector<std::vector<int>> fused_points_visibility_;
 
   std::vector<std::vector<PlyPoint>> task_fused_points_;
+  std::vector<std::vector<PlyInstance>> task_fused_points_instance_;
   std::vector<std::vector<std::vector<int>>> task_fused_points_visibility_;
 };
 
@@ -212,12 +220,15 @@ class StereoFusion : public BaseController {
 // Note that an image_idx in the case of the mvs::StereoFuser does not
 // correspond to the image_id of a Reconstruction, but the index of the image in
 // the mvs::Model, which is the location of the image in the images.bin/.txt.
+void WritePointsInstance(const std::string& path,
+                         const std::vector<PlyInstance>& points_instance);
+
 void WritePointsVisibility(
     const std::string& path,
     const std::vector<std::vector<int>>& points_visibility);
 
 namespace internal {
-uint8_t GetHighestPriority(const std::vector<uint8_t>& vec);
+std::pair<uint8_t, uint8_t> GetHighestPriority(const std::vector<uint8_t>& vec);
 }
 }  // namespace mvs
 }  // namespace colmap

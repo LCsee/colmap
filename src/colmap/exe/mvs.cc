@@ -239,6 +239,8 @@ int RunStereoFuser(int argc, char** argv) {
     WriteBinaryPlyPoints(output_path, fuser.GetFusedPoints());
     mvs::WritePointsVisibility(output_path + ".vis",
                                fuser.GetFusedPointsVisibility());
+    std::filesystem::path instance_save_path = std::filesystem::path(output_path).parent_path() / "instance.bin";
+    mvs::WritePointsInstance(instance_save_path, fuser.GetFusedPointsInstance());
   } else {
     LOG(ERROR) << "Invalid `output_type`";
     return EXIT_FAILURE;

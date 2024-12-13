@@ -56,17 +56,32 @@ float Median(std::vector<T>* elems) {
   }
 }
 
-uint8_t GetHighestPriority(const std::vector<uint8_t>& vec) {
+std::pair<uint8_t, uint8_t> GetHighestPriority(
+    const std::vector<uint8_t>& vec) {
   THROW_CHECK(!vec.empty());
-  int highestPriority = vec[0];
-  int highestPriorityValue = priority[highestPriority];
-  for (int num : vec) {
-    if (priority.at(num) < highestPriorityValue) {
-      highestPriority = num;
-      highestPriorityValue = priority.at(num);
+  uint8_t highest_ground_priority = 0;
+  uint8_t highest_no_ground_priority = 0;
+  uint8_t highest_ground_priority_value =
+      pri_ground.count(vec[0]) ? pri_ground.at(vec[0]) : UINT8_MAX;
+  uint8_t highest_no_ground_priority_value =
+      pri_no_ground.count(vec[0]) ? pri_no_ground.at(vec[0]) : UINT8_MAX;
+
+  for (uint8_t num : vec) {
+    auto it_ground = pri_ground.find(num);
+    if (it_ground != pri_ground.end() &&
+        it_ground->second < highest_ground_priority_value) {
+      highest_ground_priority = num;
+      highest_ground_priority_value = it_ground->second;
+    }
+
+    auto it_no_ground = pri_no_ground.find(num);
+    if (it_no_ground != pri_no_ground.end() &&
+        it_no_ground->second < highest_no_ground_priority_value) {
+      highest_no_ground_priority = num;
+      highest_no_ground_priority_value = it_no_ground->second;
     }
   }
-  return highestPriority;
+  return {highest_ground_priority, highest_no_ground_priority};
 }
 
 // Use the sparse model to find most connected image that has not yet been
@@ -158,6 +173,10 @@ const std::vector<PlyPoint>& StereoFusion::GetFusedPoints() const {
   return fused_points_;
 }
 
+const std::vector<PlyInstance>& StereoFusion::GetFusedPointsInstance() const {
+  return fused_points_instance_;
+}
+
 const std::vector<std::vector<int>>& StereoFusion::GetFusedPointsVisibility()
     const {
   return fused_points_visibility_;
@@ -224,6 +243,7 @@ void StereoFusion::Run() {
   }
 
   task_fused_points_.resize(num_threads);
+  task_fused_points_instance_.resize(num_threads);
   task_fused_points_visibility_.resize(num_threads);
 
   used_images_.resize(model.images.size(), false);
@@ -347,6 +367,7 @@ void StereoFusion::Run() {
   }
 
   fused_points_.reserve(total_fused_points);
+  fused_points_instance_.reserve(total_fused_points);
   fused_points_visibility_.reserve(total_fused_points);
   for (size_t thread_id = 0; thread_id < task_fused_points_.size();
        ++thread_id) {
@@ -354,6 +375,12 @@ void StereoFusion::Run() {
                          task_fused_points_[thread_id].begin(),
                          task_fused_points_[thread_id].end());
     task_fused_points_[thread_id].clear();
+
+    fused_points_instance_.insert(
+        fused_points_instance_.end(),
+        task_fused_points_instance_[thread_id].begin(),
+        task_fused_points_instance_[thread_id].end());
+    task_fused_points_instance_[thread_id].clear();
 
     fused_points_visibility_.insert(
         fused_points_visibility_.end(),
@@ -582,26 +609,37 @@ void StereoFusion::Fuse(const int thread_id,
     fused_point.ny = fused_normal.y() / fused_normal_norm;
     fused_point.nz = fused_normal.z() / fused_normal_norm;
 
-    auto label =
-        colmap::mvs::internal::GetHighestPriority(fused_point_semantic);
+    fused_point.r = TruncateCast<float, uint8_t>(
+        std::round(internal::Median(&fused_point_r)));
+    fused_point.g = TruncateCast<float, uint8_t>(
+        std::round(internal::Median(&fused_point_g)));
+    fused_point.b = TruncateCast<float, uint8_t>(
+        std::round(internal::Median(&fused_point_b)));
 
     if (enable_semantic_) {
-      const auto& color = label2color[label];
-      fused_point.r = std::get<0>(color);
-      fused_point.g = std::get<1>(color);
-      fused_point.b = std::get<2>(color);
-    } else {
-      fused_point.r = TruncateCast<float, uint8_t>(
-          std::round(internal::Median(&fused_point_r)));
-      fused_point.g = TruncateCast<float, uint8_t>(
-          std::round(internal::Median(&fused_point_g)));
-      fused_point.b = TruncateCast<float, uint8_t>(
-          std::round(internal::Median(&fused_point_b)));
+      auto label =
+          colmap::mvs::internal::GetHighestPriority(fused_point_semantic);
+      task_fused_points_instance_[thread_id].push_back(label);
     }
 
     task_fused_points_[thread_id].push_back(fused_point);
     task_fused_points_visibility_[thread_id].emplace_back(
         fused_point_visibility.begin(), fused_point_visibility.end());
+  }
+}
+
+void WritePointsInstance(const std::string& path,
+                         const std::vector<PlyInstance>& points_instance) {
+  std::fstream file(path, std::ios::out | std::ios::binary);
+  THROW_CHECK_FILE_OPEN(file, path);
+
+  WriteBinaryLittleEndian<uint64_t>(&file, points_instance.size());
+
+  for (const auto& instance : points_instance) {
+    WriteBinaryLittleEndian<uint8_t>(&file, instance.sem_id);
+    WriteBinaryLittleEndian<uint8_t>(&file, instance.ground_id);
+    WriteBinaryLittleEndian<uint8_t>(&file, instance.no_ground_id);
+    WriteBinaryLittleEndian<uint64_t>(&file, instance.inst_id);
   }
 }
 
