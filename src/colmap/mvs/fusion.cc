@@ -61,10 +61,8 @@ std::pair<uint8_t, uint8_t> GetHighestPriority(
   THROW_CHECK(!vec.empty());
   uint8_t highest_ground_priority = 0;
   uint8_t highest_no_ground_priority = 0;
-  uint8_t highest_ground_priority_value =
-      pri_ground.count(vec[0]) ? pri_ground.at(vec[0]) : UINT8_MAX;
-  uint8_t highest_no_ground_priority_value =
-      pri_no_ground.count(vec[0]) ? pri_no_ground.at(vec[0]) : UINT8_MAX;
+  uint8_t highest_ground_priority_value = UINT8_MAX;
+  uint8_t highest_no_ground_priority_value = UINT8_MAX;
 
   for (uint8_t num : vec) {
     auto it_ground = pri_ground.find(num);
@@ -81,7 +79,35 @@ std::pair<uint8_t, uint8_t> GetHighestPriority(
       highest_no_ground_priority_value = it_no_ground->second;
     }
   }
+  // std::cout << int(highest_ground_priority) << " " <<
+  // int(highest_no_ground_priority)
+  // << std::endl;
   return {highest_ground_priority, highest_no_ground_priority};
+}
+
+std::pair<uint8_t, uint8_t> GetTopTwoMode(const std::vector<uint8_t>& vec) {
+  if (vec.empty()) {
+    throw std::invalid_argument("Input vector is empty.");
+  }
+  // 统计每个元素的频次
+  std::unordered_map<uint8_t, int> freqMap;
+  for (uint8_t num : vec) {
+    freqMap[num]++;
+  }
+  // 将频次存入一个可排序的容器
+  std::vector<std::pair<uint8_t, int>> freqVec(freqMap.begin(), freqMap.end());
+  // 按频次降序排序
+  std::sort(
+      freqVec.begin(),
+      freqVec.end(),
+      [](const std::pair<uint8_t, int>& a, const std::pair<uint8_t, int>& b) {
+        return a.second > b.second;
+      });
+  // 返回第一众数和第二众数
+  uint8_t firstMode = freqVec[0].first;
+  uint8_t secondMode = (freqVec.size() > 1) ? freqVec[1].first : firstMode;
+
+  return {firstMode, secondMode};
 }
 
 // Use the sparse model to find most connected image that has not yet been
@@ -617,8 +643,9 @@ void StereoFusion::Fuse(const int thread_id,
         std::round(internal::Median(&fused_point_b)));
 
     if (enable_semantic_) {
-      auto label =
-          colmap::mvs::internal::GetHighestPriority(fused_point_semantic);
+      // auto label =
+      // colmap::mvs::internal::GetHighestPriority(fused_point_semantic);
+      std::pair<uint8_t, uint8_t> label = colmap::mvs::internal::GetTopTwoMode(fused_point_semantic);
       task_fused_points_instance_[thread_id].push_back(label);
     }
 
