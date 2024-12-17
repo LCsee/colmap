@@ -79,11 +79,13 @@ struct PlyMesh {
 
 struct PlyInstance {
   uint8_t sem_id = UINT8_MAX;  // 语义标签
-  uint8_t ground_id = UINT8_MAX; // first mode
-  uint8_t no_ground_id = UINT8_MAX; // second mode
+  uint8_t ground_id = UINT8_MAX; 
+  uint8_t no_ground_id = UINT8_MAX;
+  uint8_t first_mode_id = UINT8_MAX;
+  uint8_t second_mode_id = UINT8_MAX;
+  uint8_t third_mode_id = UINT8_MAX;
   uint64_t inst_id = UINT64_MAX;  // 实例标签
-  PlyInstance(std::pair<uint8_t, uint8_t> label)
-      : ground_id(label.first), no_ground_id(label.second) {}
+  PlyInstance() = default;
 };
 
 // Read PLY point cloud from text or binary file.

@@ -85,7 +85,8 @@ std::pair<uint8_t, uint8_t> GetHighestPriority(
   return {highest_ground_priority, highest_no_ground_priority};
 }
 
-std::pair<uint8_t, uint8_t> GetTopTwoMode(const std::vector<uint8_t>& vec) {
+std::tuple<uint8_t, uint8_t, uint8_t> GetTopThreeMode(
+    const std::vector<uint8_t>& vec) {
   if (vec.empty()) {
     throw std::invalid_argument("Input vector is empty.");
   }
@@ -106,8 +107,9 @@ std::pair<uint8_t, uint8_t> GetTopTwoMode(const std::vector<uint8_t>& vec) {
   // 返回第一众数和第二众数
   uint8_t firstMode = freqVec[0].first;
   uint8_t secondMode = (freqVec.size() > 1) ? freqVec[1].first : firstMode;
+  uint8_t thirdMode = (freqVec.size() > 2) ? freqVec[2].first : secondMode;
 
-  return {firstMode, secondMode};
+  return {firstMode, secondMode, thirdMode};
 }
 
 // Use the sparse model to find most connected image that has not yet been
@@ -643,10 +645,17 @@ void StereoFusion::Fuse(const int thread_id,
         std::round(internal::Median(&fused_point_b)));
 
     if (enable_semantic_) {
-      // auto label =
-      // colmap::mvs::internal::GetHighestPriority(fused_point_semantic);
-      std::pair<uint8_t, uint8_t> label = colmap::mvs::internal::GetTopTwoMode(fused_point_semantic);
-      task_fused_points_instance_[thread_id].push_back(label);
+      PlyInstance instance;
+      std::tuple<uint8_t, uint8_t, uint8_t> mode_label =
+          colmap::mvs::internal::GetTopThreeMode(fused_point_semantic);
+      instance.first_mode_id = std::get<0>(mode_label);
+      instance.second_mode_id = std::get<1>(mode_label);
+      instance.third_mode_id = std::get<2>(mode_label);
+      std::pair<uint8_t, uint8_t> prior_label =
+          colmap::mvs::internal::GetHighestPriority(fused_point_semantic);
+      instance.ground_id = prior_label.first;
+      instance.no_ground_id = prior_label.second;
+      task_fused_points_instance_[thread_id].push_back(instance);
     }
 
     task_fused_points_[thread_id].push_back(fused_point);
@@ -666,6 +675,9 @@ void WritePointsInstance(const std::string& path,
     WriteBinaryLittleEndian<uint8_t>(&file, instance.sem_id);
     WriteBinaryLittleEndian<uint8_t>(&file, instance.ground_id);
     WriteBinaryLittleEndian<uint8_t>(&file, instance.no_ground_id);
+    WriteBinaryLittleEndian<uint8_t>(&file, instance.first_mode_id);
+    WriteBinaryLittleEndian<uint8_t>(&file, instance.second_mode_id);
+    WriteBinaryLittleEndian<uint8_t>(&file, instance.third_mode_id);
     WriteBinaryLittleEndian<uint64_t>(&file, instance.inst_id);
   }
 }

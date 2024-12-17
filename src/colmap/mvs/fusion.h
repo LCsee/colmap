@@ -229,7 +229,7 @@ void WritePointsVisibility(
 
 namespace internal {
 std::pair<uint8_t, uint8_t> GetHighestPriority(const std::vector<uint8_t>& vec);
-std::pair<uint8_t, uint8_t> GetTopTwoMode(const std::vector<uint8_t>& vec);
+std::tuple<uint8_t, uint8_t, uint8_t> GetTopThreeMode(const std::vector<uint8_t>& vec);
 }
 }  // namespace mvs
 }  // namespace colmap
